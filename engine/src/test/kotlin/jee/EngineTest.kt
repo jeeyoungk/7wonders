@@ -15,4 +15,12 @@ class EngineTest {
         assertEquals(16, jee.scoreScience(1, 0, 0, 3))
         assertEquals(13, jee.scoreScience(1, 1, 0, 2))
     }
+
+    @Test
+    fun testCard() {
+        for (players in 3..7) {
+            val e = Engine(players, CARDS)
+            assertEquals(players * 7, e.obtainCards(1).size, "Failed to get the correct # of cards for $players")
+        }
+    }
 }
