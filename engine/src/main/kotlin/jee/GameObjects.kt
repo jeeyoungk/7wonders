@@ -32,7 +32,8 @@ enum class CardType {
     IMPROVEMENTS,
     GUILD,
     SCIENCE,
-    WONDER
+    WONDER,
+    STARTING
 }
 
 enum class Resource(val advanced: Boolean) {
@@ -44,7 +45,7 @@ enum class Science() {
     COMPASS, GEAR, TABLET, WILDCARD
 }
 
-class MilitaryToken(val point: Int)
+data class MilitaryToken(val point: Int)
 
 val BASIC_RESOURCES: Set<Resource> = HashSet(Resource.values().filter { it -> !it.advanced })
 val ADVANCED_RESOURCES: Set<Resource> = HashSet(Resource.values().filter(Resource::advanced))
@@ -56,7 +57,8 @@ data class Card(
         val name: String,
         val cardType: CardType,
         val requiredGold: Int,
-        val age: Int,
+        /** Age this card is available from. Wonders may have different value. */
+        val age: Int?,
         val appears: List<Int>,
         val requiredResources: Map<Resource, Int>,
         val optionalUpgrade: List<Card>,
@@ -101,6 +103,12 @@ data class Card(
         var militaryPoints: Int = 0
         var science: Science? = null
         fun build(): Card {
+            if (name == null) {
+                throw IllegalArgumentException("Name is required.")
+            }
+            if (cardType == null) {
+                throw IllegalArgumentException("Card $name requires a cardtype.")
+            }
             return Card(this)
         }
 

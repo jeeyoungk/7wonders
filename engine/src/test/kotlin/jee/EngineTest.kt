@@ -1,6 +1,7 @@
 package jee
 
 import org.junit.Test
+import java.util.*
 import kotlin.test.assertEquals
 
 class EngineTest {
@@ -19,7 +20,8 @@ class EngineTest {
     @Test
     fun testCard() {
         for (players in 3..7) {
-            val e = Engine(players, CARDS)
+            val agents:List<Agent> = ArrayList((1..players).map({RandomAgent()}));
+            val e = Engine(players, CARDS, agents, 1)
             assertEquals(players * 7, e.obtainCards(1).size, "Failed to get the correct # of cards for $players")
         }
     }

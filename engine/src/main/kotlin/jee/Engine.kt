@@ -12,19 +12,30 @@ import java.util.*
 // for build/wonder:
 // - can afford?
 // - if can't afford, then can trade? with who? (multiple possibilities).
+- implement game log.
  */
-class Engine(players: Int, val allCards: List<Card>) {
-    val players: List<Player> = ArrayList((1..players).map { Player() })
-    val numPlayers: Int get() {
-        return players.size
+class Engine(players: Int,
+             private val allCards: List<Card>,
+             private val agents: List<Agent>,
+             seed: Long) : ExposedWorld {
+    val random = java.util.Random(seed)
+    val players: List<Player> = ArrayList((0..players - 1).map(::Player))
+    val numPlayers: Int get() = players.size
+
+    init {
+        if (agents.size != players) {
+            throw IllegalArgumentException("# of agents must equal # of players.")
+        }
     }
 
-    val hands: List<List<Card>> = listOf();
+    var hands: List<List<Card>> = mutableListOf()
+        private set
+
     /** current age of the game age 1 -> 2 -> 3 */
-    var age = 1
+    override var age = 0
         private set
     /** turn 1 -> 2 -> 3 ... -> 6 -> 7 (babylon) */
-    var turn = 1
+    override var turn = 1
         private set
     var state: EngineState = EngineState.UNINITIALIZED
         private set
@@ -32,7 +43,7 @@ class Engine(players: Int, val allCards: List<Card>) {
     enum class EngineState {
         UNINITIALIZED,
         INITIALIZED,
-        NEW_AGE,
+        IN_GAME,
         END_OF_AGE
     }
 
@@ -41,8 +52,90 @@ class Engine(players: Int, val allCards: List<Card>) {
     }
 
     fun doNewAge() {
+        assert(state == EngineState.INITIALIZED || state == EngineState.END_OF_AGE, { "expected initialized state." })
+        assert(age > 0 && age < 3, { "age must be in [0, 3)" })
+        age++
+        turn = 0
         val presentCards = obtainCards(age)
-        // shuffle cards.
+        Collections.shuffle(presentCards, random)
+        hands = prepareHands(presentCards)
+        state = EngineState.IN_GAME
+    }
+
+    fun playRound() {
+        // give cards to players.
+        val moves: List<Action> = players.indices.map {
+            val player = players[it]
+            val agent = agents[it]
+            // val move = agent.play(this)
+            // validate the move.
+            val scopedGame = AgentScopedGameImpl(this, player, hands[it], it)
+            val action = agent.play(scopedGame)
+            // TODO - validate the move.
+            action
+        }
+
+        moves.map {
+            // apply the move.
+        }
+
+        // calculate the effect of cards.
+
+        // shift the cards.
+        shiftHands()
+    }
+
+    fun endAge() {
+        // calculate military.
+        assert(state == EngineState.IN_GAME, { "expected in game state." })
+        interactAll { current, enemy ->
+            if (current.militaryPoints > enemy.militaryPoints) {
+                // todo - per age military.
+                current.militaryTokens.add(MilitaryToken(1))
+            } else if (current.militaryPoints < enemy.militaryPoints) {
+                current.militaryTokens.add(MilitaryToken(-1))
+            }
+        }
+        state = EngineState.END_OF_AGE
+    }
+
+    /**
+     * helper function to interact between players.
+     */
+    private fun interactAll(interaction: (Player, Player) -> Unit) {
+        for (pos in players.indices) {
+            val curPlayer = players[pos]
+            val left = leftPlayer(pos)
+            val right = rightPlayer(pos)
+            interaction(curPlayer, left)
+            interaction(curPlayer, right)
+        }
+    }
+
+    fun leftPlayer(position: Int): Player = players[(position - 1) % numPlayers]
+
+    fun rightPlayer(position: Int): Player = players[(position + 1) % numPlayers]
+
+    fun prepareHands(presentCards: List<Card>): List<List<Card>> {
+        val tmpHands = ArrayList((1..numPlayers).map { mutableListOf<Card>() })
+        for ((i, card) in presentCards.withIndex()) {
+            tmpHands[i % numPlayers].add(card)
+        }
+        return tmpHands
+    }
+
+    private fun shiftHands() {
+        if (age == 1 || age == 3) {
+            hands = players.indices.map {
+                hands[(it + 1) % numPlayers]
+            }
+        } else if (age == 2) {
+            hands = players.indices.map {
+                hands[(it - 1) % numPlayers]
+            }
+        } else {
+            throw RuntimeException("Unsupported age.")
+        }
     }
 
     fun obtainCards(age: Int): List<Card> {
@@ -58,15 +151,23 @@ class Engine(players: Int, val allCards: List<Card>) {
     }
 }
 
+
+data class AgentScopedGameImpl(
+        override val world: ExposedWorld,
+        override val player: ExposedPlayer,
+        override val hand: List<Card>,
+        override val playerIndex: Int) : AgentScopedGame {
+}
+
 /**
  * Represents state for a given player.
  */
-class Player {
+class Player(override var position: Int) : ExposedPlayer {
     var gold: Int = 0
     /** List of built cards + wonders. */
-    var built: List<Card> = listOf()
+    val built: MutableList<Card> = mutableListOf()
     /** List of accumulated military tokens. */
-    var militaryTokens: List<MilitaryToken> = listOf()
+    val militaryTokens: MutableList<MilitaryToken> = mutableListOf()
 
     /** returns # of military points available for a player. */
     val militaryPoints: Int get() {
@@ -74,17 +175,11 @@ class Player {
     }
 
     /** returns # of military victory points available for a player. */
-    val militaryVictoryPoints: Int get() {
-        return militaryTokens.map(MilitaryToken::point).sum()
-    }
+    val militaryVictoryPoints: Int get() = militaryTokens.map(MilitaryToken::point).sum()
 
-    val improvementVictoryPoints: Int get() {
-        return built.map(Card::victoryPoints).sum()
-    }
+    val improvementVictoryPoints: Int get() = built.map(Card::victoryPoints).sum()
 
-    val moneyVictoryPoints: Int get() {
-        return gold / 3
-    }
+    val moneyVictoryPoints: Int get() = gold / 3
 
     val scienceVictoryPoints: Int get() {
         return scoreScience(
@@ -100,16 +195,6 @@ class Player {
     }
 }
 
-/**
- * Represents an agent playing the game.
- */
-interface Agent {
-
-}
-
-class PlayerAgent : Agent {
-
-}
 
 /**
  * Calculate the victory points for # of science.
@@ -129,6 +214,6 @@ fun scoreScience(a: Int, b: Int, c: Int, wild: Int): Int {
 }
 
 fun main(args: Array<String>) {
-    val e = Engine(4, CARDS)
+    val e = Engine(4, CARDS, listOf(PlayerAgent(), PlayerAgent(), PlayerAgent(), PlayerAgent()), 0)
     e.doNewAge()
 }
