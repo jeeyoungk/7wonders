@@ -3,9 +3,6 @@ package jee
 import java.util.*
 
 /**
- * Created by jeeyoungk on 1/4/17.
- */
-/**
  * Things to implement:
  *
  * cards
