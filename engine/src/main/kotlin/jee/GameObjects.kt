@@ -33,7 +33,9 @@ enum class CardType {
     GUILD,
     SCIENCE,
     WONDER,
-    STARTING
+    STARTING,
+    /** Sample card - reserved for tests. */
+    SAMPLE
 }
 
 enum class Resource(val advanced: Boolean) {
@@ -50,21 +52,64 @@ data class MilitaryToken(val point: Int)
 val BASIC_RESOURCES: Set<Resource> = HashSet(Resource.values().filter { it -> !it.advanced })
 val ADVANCED_RESOURCES: Set<Resource> = HashSet(Resource.values().filter(Resource::advanced))
 
-fun <T> permute(options: List<Collection<T>>, func: (List<T>) -> Unit) {
-    permute(options, func, mutableListOf())
+fun <T> permute(options: List<Collection<T>>): List<List<T>> {
+    return permuteMap(options, { ArrayList(it) })
 }
 
-fun <T> permute(options: List<Collection<T>>, func: (List<T>) -> Unit, lst: MutableList<T>) {
+fun <T, S> permuteMap(options: List<Collection<T>>, func: (List<T>) -> S): List<S> {
+    val result: MutableList<S> = mutableListOf()
+    permuteImpl(options, func, mutableListOf(), result)
+    return result
+}
+
+fun <T, S> permuteImpl(options: List<Collection<T>>, func: (List<T>) -> S, current: MutableList<T>, result: MutableCollection<S>) {
     if (options.isEmpty()) {
-        func(lst)
+        result.add(func(current))
     } else {
         val option = options.first()
         for (opt in option) {
-            lst.add(opt)
-            permute(options.subList(1, options.size), func, lst)
-            lst.removeAt(lst.size - 1)
+            current.add(opt)
+            permuteImpl(options.subList(1, options.size), func, current, result)
+            current.removeAt(current.size - 1)
         }
     }
+}
+
+fun <T : Comparable<T>> isListEqual(a: List<T>, b: List<T>): Boolean {
+    if (a.size != b.size) {
+        return false;
+    }
+    val sortedA = a.sorted()
+    val sortedB = b.sorted()
+    for (pos in sortedA.indices) {
+        if (sortedA[pos] != sortedB[pos]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+fun <T : Comparable<T>> isSubList(superlist: List<T>, sublist: List<T>): Boolean {
+    if (superlist.size < sublist.size) {
+        return false;
+    }
+    val sortedSuper = superlist.sorted()
+    val sortedSub = sublist.sorted()
+    var subIdx = 0
+    var superIdx = 0
+    while (subIdx < sortedSub.size && superIdx < sortedSuper.size) {
+        val superVal = sortedSuper[superIdx]
+        val subVal = sortedSub[subIdx]
+        if (superVal == subVal) {
+            subIdx++
+            superIdx++
+        } else if (superVal < subVal) {
+            superIdx++
+        } else {
+            return false
+        }
+    }
+    return subIdx == sortedSub.size;
 }
 
 /**
@@ -102,9 +147,13 @@ data class Card(
             builder.science
     )
 
+    /**
+     * Determine whether this card can provide the given set of resources.
+     */
     fun canProvide(resources: List<Resource>): Boolean {
-        // TODO - maybe i can optimize this? i feel like this problem is equivalent to SAT in general case.
-        return false
+        // TODO - maybe i can optimize this?
+        // i feel like this problem is equivalent to SAT in general case.
+        return permuteMap(providedResources, { isSubList(it, resources) }).any({ it })
     }
 
     companion object {
@@ -140,7 +189,7 @@ data class Card(
                 throw RuntimeException("Not supported")
             }
             set(value) {
-                providedResources = listOf(hashSetOf(value))
+                providedResources = listOf(setOf(value))
             }
 
         var choosingResources: Set<Resource>
@@ -148,7 +197,7 @@ data class Card(
                 throw RuntimeException("Not supported")
             }
             set(value) {
-                providedResources = ArrayList(value.map { it -> hashSetOf(it) })
+                providedResources = listOf(value)
             }
     }
 }

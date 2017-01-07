@@ -1,7 +1,12 @@
 package jee
 
 /**
- * List of all cards
+ * List of all cards provided by 7 wonders.
+ *
+ * TODO: add
+ * - age 2, 3 cards
+ * - implement trade cards.
+ * - implement wonders.
  */
 val CARDS: List<Card> = arrayListOf(
         // basic resources
