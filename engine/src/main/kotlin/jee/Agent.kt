@@ -36,15 +36,17 @@ interface ExposedPlayer {
 /**
  * Decision returned by a user.
  */
-data class Action(val card: Card, val actionType: ActionType, val trades: List<Trade>) {
+data class Action(val card: Card, val actionType: ActionType, val usages: List<Usage>) {
 
 }
 
 /**
  * Additional information regarding the decision returned by the user.
  */
-data class Trade(val resource: Resource, val fromPlayer: Int, val fromCard: Card) {
-
+data class Usage(
+        val resources: List<Resource>,
+        val fromPlayer: Int,
+        val fromCard: Card) {
 }
 
 /**

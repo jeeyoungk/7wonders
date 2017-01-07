@@ -3,6 +3,8 @@ package jee
 import org.junit.Test
 import java.util.*
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class EngineTest {
     @Test
@@ -20,9 +22,24 @@ class EngineTest {
     @Test
     fun testCard() {
         for (players in 3..7) {
-            val agents:List<Agent> = ArrayList((1..players).map({RandomAgent()}));
-            val e = Engine(players, CARDS, agents, 1)
+            val e = makeEngine(players)
             assertEquals(players * 7, e.obtainCards(1).size, "Failed to get the correct # of cards for $players")
         }
+    }
+
+    @Test
+    fun testAdjancy() {
+        val e = makeEngine(5)
+        assertTrue(e.isAdjacent(0, 1))
+        assertTrue(e.isAdjacent(1, 0))
+        assertTrue(e.isAdjacent(0, 4))
+        assertFalse(e.isAdjacent(0, 0))
+        assertFalse(e.isAdjacent(0, 2))
+        assertFalse(e.isAdjacent(0, 3))
+    }
+
+    fun makeEngine(numPlayers: Int): Engine {
+        val agents: List<Agent> = (1..numPlayers).map({ RandomAgent() });
+        return Engine(numPlayers, CARDS, agents, 1)
     }
 }

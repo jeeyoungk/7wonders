@@ -50,6 +50,23 @@ data class MilitaryToken(val point: Int)
 val BASIC_RESOURCES: Set<Resource> = HashSet(Resource.values().filter { it -> !it.advanced })
 val ADVANCED_RESOURCES: Set<Resource> = HashSet(Resource.values().filter(Resource::advanced))
 
+fun <T> permute(options: List<Collection<T>>, func: (List<T>) -> Unit) {
+    permute(options, func, mutableListOf())
+}
+
+fun <T> permute(options: List<Collection<T>>, func: (List<T>) -> Unit, lst: MutableList<T>) {
+    if (options.isEmpty()) {
+        func(lst)
+    } else {
+        val option = options.first()
+        for (opt in option) {
+            lst.add(opt)
+            permute(options.subList(1, options.size), func, lst)
+            lst.removeAt(lst.size - 1)
+        }
+    }
+}
+
 /**
  * Immutable representation of a card.
  */
@@ -62,7 +79,7 @@ data class Card(
         val appears: List<Int>,
         val requiredResources: Map<Resource, Int>,
         val optionalUpgrade: List<Card>,
-        /** list of resources provided by this building. */
+        /** list of resources provided by this building. (CNF form) */
         val providedResources: List<Set<Resource>>,
         /** Whether resources provided by this building is tradable from other players. */
         val tradable: Boolean,
@@ -85,6 +102,11 @@ data class Card(
             builder.science
     )
 
+    fun canProvide(resources: List<Resource>): Boolean {
+        // TODO - maybe i can optimize this? i feel like this problem is equivalent to SAT in general case.
+        return false
+    }
+
     companion object {
         inline fun build(block: Builder.() -> Unit) = Builder().apply(block).build()
     }
@@ -97,6 +119,7 @@ data class Card(
         var appears: List<Int> = listOf()
         var requiredResources: Map<Resource, Int> = hashMapOf()
         var optionalUpgrade: List<Card> = arrayListOf()
+        /** List of mutually exclusive resources provided by the server. */
         var providedResources: List<Set<Resource>> = arrayListOf()
         var tradable: Boolean = true
         var victoryPoints: Int = 0

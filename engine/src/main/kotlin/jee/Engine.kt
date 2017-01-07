@@ -1,5 +1,6 @@
 package jee
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import java.util.*
 
 /**
@@ -71,7 +72,7 @@ class Engine(players: Int,
             // validate the move.
             val scopedGame = AgentScopedGameImpl(this, player, hands[it], it)
             val action = agent.play(scopedGame)
-            // TODO - validate the move.
+            validateAction(action, player)
             action
         }
 
@@ -112,17 +113,31 @@ class Engine(players: Int,
         }
     }
 
-    fun leftPlayer(position: Int): Player = players[(position - 1) % numPlayers]
-
-    fun rightPlayer(position: Int): Player = players[(position + 1) % numPlayers]
-
-    fun prepareHands(presentCards: List<Card>): List<List<Card>> {
-        val tmpHands = ArrayList((1..numPlayers).map { mutableListOf<Card>() })
-        for ((i, card) in presentCards.withIndex()) {
-            tmpHands[i % numPlayers].add(card)
+    private fun validateAction(action: Action, player: Player): Boolean {
+        // card is in the player's hand.
+        if (!hands[player.position].contains(action.card)) {
+            return false
         }
-        return tmpHands
+        for (usage in action.usages) {
+            val fromPlayer = players[usage.fromPlayer]
+            if (usage.fromPlayer == player.position) {
+                if (!fromPlayer.built.contains(usage.fromCard)) {
+                    return false
+                }
+                // validate the resource
+                // validate the resource
+            } else if (isAdjacent(player.position, usage.fromPlayer)) {
+
+            } else {
+                // usage is from wrong player.
+            }
+        }
+        return true
     }
+
+    private fun leftPlayer(position: Int): Player = players[(position - 1) % numPlayers]
+
+    private fun rightPlayer(position: Int): Player = players[(position + 1) % numPlayers]
 
     private fun shiftHands() {
         if (age == 1 || age == 3) {
@@ -148,6 +163,19 @@ class Engine(players: Int,
             }
         }
         return presentCards
+    }
+
+    internal fun isAdjacent(positionA: Int, positionB: Int): Boolean {
+        val delta = ((positionA - positionB + numPlayers) % numPlayers)
+        return delta == 1 || delta == numPlayers - 1
+    }
+
+    internal fun prepareHands(presentCards: List<Card>): List<List<Card>> {
+        val tmpHands = ArrayList((1..numPlayers).map { mutableListOf<Card>() })
+        for ((i, card) in presentCards.withIndex()) {
+            tmpHands[i % numPlayers].add(card)
+        }
+        return tmpHands
     }
 }
 
