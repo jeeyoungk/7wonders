@@ -22,11 +22,11 @@ class GameObjectsKtTest {
 
     @Test
     fun isSubList() {
-        assertTrue(jee.isSubList(listOf<Int>(), listOf<Int>()))
-        assertTrue(jee.isSubList(listOf(1), listOf(1)))
-        assertTrue(jee.isSubList(listOf(1, 2, 3), listOf(2)))
-        assertTrue(jee.isSubList(listOf(1, 2, 2, 3, 4), listOf(2, 3)))
-        assertFalse(jee.isSubList(listOf(), listOf(1)))
-        assertFalse(jee.isSubList(listOf(2, 3), listOf(2, 3, 4)))
+        assertTrue(isSubList(listOf<Int>(), listOf<Int>()))
+        assertTrue(isSubList(listOf(1), listOf(1)))
+        assertTrue(isSubList(listOf(1, 2, 3), listOf(2)))
+        assertTrue(isSubList(listOf(1, 2, 2, 3, 4), listOf(2, 3)))
+        assertFalse(isSubList(listOf(), listOf(1)))
+        assertFalse(isSubList(listOf(2, 3), listOf(2, 3, 4)))
     }
 }

@@ -1,7 +1,12 @@
 package jee
 
 enum class ActionType {
-    BUY, DISCARD, WONDER
+    /** Buy a card by paying its cost. */
+    BUY,
+    /** Obtain a card by performing an upgrade. */
+    UPGRADE,
+    DISCARD,
+    WONDER
 }
 
 /**
@@ -35,6 +40,8 @@ interface ExposedPlayer {
 
 /**
  * Decision returned by a user.
+ *
+ * TODO - represent upgrade.
  */
 data class Action(val card: Card, val actionType: ActionType, val usages: List<Usage>) {
 

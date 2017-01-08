@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 class EngineTest {
     @Test
     fun testScience() {
+        // todo - this actually tests utility.
         assertEquals(0, jee.scoreScience(0, 0, 0, 0))
         assertEquals(1, jee.scoreScience(1, 0, 0, 0))
         assertEquals(2, jee.scoreScience(1, 1, 0, 0))
@@ -36,6 +37,20 @@ class EngineTest {
         assertFalse(e.isAdjacent(0, 0))
         assertFalse(e.isAdjacent(0, 2))
         assertFalse(e.isAdjacent(0, 3))
+    }
+
+    @Test
+    fun testShuffle() {
+        val e = makeEngine(5)
+        e.initialize()
+        e.doNewAge()
+        val previous = ArrayList(e.hands)
+        e.shiftHands()
+        assertEquals(previous[1], e.hands[0])
+        assertEquals(previous[2], e.hands[1])
+        assertEquals(previous[3], e.hands[2])
+        assertEquals(previous[4], e.hands[3])
+        assertEquals(previous[0], e.hands[4])
     }
 
     fun makeEngine(numPlayers: Int): Engine {

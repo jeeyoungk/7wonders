@@ -38,6 +38,7 @@ class Engine(players: Int,
     /** turn 1 -> 2 -> 3 ... -> 6 -> 7 (babylon) */
     override var turn = 1
         private set
+
     var state: EngineState = EngineState.UNINITIALIZED
         private set
 
@@ -54,7 +55,7 @@ class Engine(players: Int,
 
     fun doNewAge() {
         assert(state == EngineState.INITIALIZED || state == EngineState.END_OF_AGE, { "expected initialized state." })
-        assert(age > 0 && age < 3, { "age must be in [0, 3)" })
+        assert(age >= 0 && age < 3, { "age must be in [0, 3)" })
         age++
         turn = 0
         val presentCards = obtainCards(age)
@@ -113,24 +114,52 @@ class Engine(players: Int,
         }
     }
 
+    private fun validateCardResource(action: Action): Boolean {
+        val allResources = mutableMapOf<Resource, Int>()
+        for (usage in action.usages) {
+            for (resource in usage.resources) {
+                if (allResources.contains(resource)) {
+                    allResources[resource] = allResources[resource]!! + 1
+                } else {
+                    allResources[resource] = 1
+                }
+            }
+        }
+        if (allResources != action.card.requiredResources) {
+            return false;
+        }
+        return true;
+    }
+
     private fun validateAction(action: Action, player: Player): Boolean {
         // card is in the player's hand.
         if (!hands[player.position].contains(action.card)) {
             return false
         }
+
+        if (!validateCardResource(action)) {
+            // validate that all resources are satisfied.
+            return false;
+        }
+
         for (usage in action.usages) {
             val fromPlayer = players[usage.fromPlayer]
-            if (usage.fromPlayer == player.position) {
+            val seenCards: MutableMap<Int, MutableSet<Card>> = mutableMapOf()
+            if (usage.fromPlayer == player.position || isAdjacent(player.position, usage.fromPlayer)) {
+                if (!seenCards.contains(usage.fromPlayer)) {
+                    seenCards[usage.fromPlayer] = mutableSetOf()
+                }
+                val playerSeenCards = seenCards[usage.fromPlayer]!!
                 if (!fromPlayer.built.contains(usage.fromCard)) {
                     return false
+                } else if (playerSeenCards.contains(usage.fromCard)) {
+                    return false
                 }
-                // validate the resource
-                // validate the resource
-            } else if (isAdjacent(player.position, usage.fromPlayer)) {
-
+                playerSeenCards.add(usage.fromCard)
             } else {
                 // usage is from wrong player.
             }
+            // validate the cost in gold - can the player perform the trade?
         }
         // check for other things.
         return true
@@ -140,7 +169,7 @@ class Engine(players: Int,
 
     private fun rightPlayer(position: Int): Player = players[(position + 1) % numPlayers]
 
-    private fun shiftHands() {
+    internal fun shiftHands() {
         if (age == 1 || age == 3) {
             hands = players.indices.map {
                 hands[(it + 1) % numPlayers]
